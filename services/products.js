@@ -2,10 +2,21 @@ const db = require('../db/connection');
 const fetch = require('cross-fetch');
 
 // Mongo DB Collections
-const products_db = db.get('products');
+const productsCollection = db.get('products');
 
 function getProducts(req, res) {
-    res.send('Hello!');
+    let response = {};
+    productsCollection.find()
+        .then((data) => {
+            response = data;
+        })
+        .catch((error) => {
+            console.error(error)
+            response = "Error when fetching products."
+        })
+        .finally(() => {
+            res.json(response);
+        }) ;
 }
 
 module.exports = {
