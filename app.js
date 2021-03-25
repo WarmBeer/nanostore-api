@@ -17,3 +17,4 @@ app.listen(port, () => {
 //REGISTER ROUTES
 require('./resources/products')(app);
 require('./resources/authentication')(app);
+require('./resources/orders')(app);

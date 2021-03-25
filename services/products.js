@@ -1,5 +1,4 @@
 const db = require('../db/connection');
-const fetch = require('cross-fetch');
 
 // Mongo DB Collections
 const productsCollection = db.get('products');

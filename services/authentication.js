@@ -4,9 +4,8 @@ const sanitize = require('mongo-sanitize');
 const users = db.get('users');
 
 function loginUser(req, res) {
-    console.log(req.body);
 
-    //TODO: Filter input
+    //TODO: Hash passwords
     const credentials = {
         email: req.body.email,
         _password: req.body.password
