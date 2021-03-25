@@ -1,8 +1,8 @@
 module.exports = function(app){
 
-    const service = require('../services/users');
+    const service = require('../services/authentication');
 
-    app.get('/auth', (req, res) => {
+    app.post('/auth', (req, res) => {
         service.loginUser(req, res);
     });
 
