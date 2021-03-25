@@ -50,7 +50,7 @@ function admin(req, res, next) {
             if (req.user.role >= 2) {
                 next();
             } else {
-                res.status(401).json(defaultResponse);
+                res.status(403).json(defaultResponse);
             }
         }
 
