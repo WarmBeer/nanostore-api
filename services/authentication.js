@@ -33,6 +33,13 @@ function loginUser(req, res) {
         })
 }
 
+function getUserFromJwt(req, res) {
+    res.json({
+        user: req.user,
+        token: req.body.token
+    })
+}
+
 function getUser(email, _password) {
     return users.findOne({ email, _password }, { projection: { _id: 0, _password: 0 } });
 }
@@ -50,4 +57,5 @@ function createUser(email, _password, name, role) {
 
 module.exports = {
     loginUser,
+    getUserFromJwt
 }

@@ -1,10 +1,7 @@
-const jwtHelper = require('../../core/jwtHelper');
-const db = require('../../db/connection');
-const { userRoles } = require('../../core/helpers');
+const jwtHelper = require("../../core/jwtHelper");
 
 const defaultResponse = {
-    ok: false,
-    message: 'Unauthorized.'
+    error: 'Unauthorized.'
 };
 
 function user(req, res, next) {
@@ -21,14 +18,14 @@ function user(req, res, next) {
         } catch {
             err = true;
             console.log('Token invalid.');
-            res.json(defaultResponse);
+            res.status(401).json(defaultResponse);
         }
 
         if (!err) {
             next();
         }
     } else {
-        res.json(defaultResponse);
+        res.status(401).json(defaultResponse);
     }
 }
 
@@ -46,14 +43,14 @@ function admin(req, res, next) {
         } catch {
             err = true;
             console.log('Token invalid.');
-            res.json(defaultResponse);
+            res.status(401).json(defaultResponse);
         }
 
         if (!err) {
-            if (req.user.role >= userRoles.MOD) {
+            if (req.user.role >= 2) {
                 next();
             } else {
-                res.json(defaultResponse);
+                res.status(401).json(defaultResponse);
             }
         }
 
