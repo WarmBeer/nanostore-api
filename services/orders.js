@@ -180,6 +180,12 @@ function updateStockOrders(orders, modifier = 1 || -1) {
 
 function createOrder({ email, name }, orders) {
 
+    let subtotal = 0;
+
+    orders.forEach((order) => {
+        subtotal += order.price * order.quantity;
+    });
+
     const order_info = {
         id: generateOrderId(),
         paid: true,
@@ -187,6 +193,7 @@ function createOrder({ email, name }, orders) {
         name,
         time: +Date.now(),
         products: orders,
+        subtotal
     }
 
     sanitize(order_info);
