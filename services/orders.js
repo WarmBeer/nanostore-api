@@ -5,6 +5,46 @@ const sanitize = require("mongo-sanitize");
 const productsCollection = db.get('products');
 const ordersCollection = db.get('orders');
 
+function getOrderById(req, res) {
+    if (!req.params.orderId) {
+        res.status(400).json({error: 'Missing arguments.'})
+    }
+
+    getOrder(req.params.orderId)
+        .then(
+            order => {
+                res.json({
+                    order
+                })
+            },
+            error => {
+                console.log(error);
+                res.status(400).json({ error })
+            }
+        )
+}
+
+function getOrder(orderId) {
+    return new Promise((resolve, reject) => {
+
+        const order = {
+            id: orderId
+        }
+
+        sanitize(order);
+
+        ordersCollection.findOne(order)
+            .then((order) => {
+                if (!order) reject('Order does not exist.');
+                resolve(order);
+            })
+            .catch((e) => {
+                console.error(e);
+                reject('Wrong orderId format.');
+            })
+    });
+}
+
 async function purchase(req, res) {
     console.log(req.body);
 
@@ -12,7 +52,9 @@ async function purchase(req, res) {
         res.status(400).json({error: 'Missing arguments.'})
     }
 
-    await validateOrders(req.body.orders)
+    let orders = req.body.orders;
+
+    await validateOrders(orders)
         .then(
             success => {
                 console.log('Orders are valid.');
@@ -23,7 +65,7 @@ async function purchase(req, res) {
             }
         )
 
-    await checkStockOrders(req.body.orders)
+    await checkStockAndAddPriceOrders(orders)
         .then(
             success => {
                 console.log('All items are in stock.');
@@ -35,7 +77,7 @@ async function purchase(req, res) {
         )
 
     // Remove order quantity from stock
-    await updateStockOrders(req.body.orders, -1)
+    await updateStockOrders(orders, -1)
         .then(
             success => {
                 console.log('Item stock updated.');
@@ -46,7 +88,7 @@ async function purchase(req, res) {
             }
         )
 
-    createOrder(req.user, req.body.orders)
+    createOrder(req.user, orders)
         .then(
             data => {
                 console.log('Order successfully handled.');
@@ -73,35 +115,45 @@ function validateOrders(orders) {
     })
 }
 
-function checkStockOrders(orders) {
+function checkStockAndAddPriceOrders(orders) {
     return new Promise((resolve, reject) => {
-        orders.forEach((order) => {
-            const order_info = {
+        let stockCheckQueue = 0;
+        let forEachEnded = false;
+        orders.forEach((order, index) => {
+            ++stockCheckQueue
+            const product = {
                 id: order.productId
             }
 
-            sanitize(order_info);
+            sanitize(product);
 
-            productsCollection.findOne(order_info)
+            productsCollection.findOne(product)
                 .then((product) => {
                     if (!product) reject('Product does not exist.');
+                    if (!product.price) reject('Could not find product price.');
                     if (product.stock < order.quantity) {
                         reject('Some items are out of stock.');
                     }
+                    orders[index].price = product.price;
+                    console.log(orders[0]);
+                    --stockCheckQueue
+                    if (stockCheckQueue < 1 && forEachEnded) resolve(true);
                 })
                 .catch((e) => {
                     console.error(e);
                     reject('Wrong order format.');
                 })
         });
-
-        resolve(true);
+        forEachEnded = true;
     })
 }
 
 function updateStockOrders(orders, modifier = 1 || -1) {
     return new Promise((resolve, reject) => {
+        let stockCheckQueue = 0;
+        let forEachEnded = false;
         orders.forEach((order) => {
+            ++stockCheckQueue
             const order_info = {
                 id: order.productId
             }
@@ -114,24 +166,27 @@ function updateStockOrders(orders, modifier = 1 || -1) {
                     if (product.stock < order.quantity) {
                         reject('Some items are out of stock.');
                     }
+                    --stockCheckQueue
+                    if (stockCheckQueue < 1 && forEachEnded) resolve(true);
                 })
                 .catch((e) => {
                     console.error(e);
                     reject('Wrong order format.');
                 })
         });
-
-        resolve(true);
+        forEachEnded = true;
     })
 }
 
 function createOrder({ email, name }, orders) {
+
     const order_info = {
         id: generateOrderId(),
+        paid: true,
         email,
         name,
         time: +Date.now(),
-        products: orders
+        products: orders,
     }
 
     sanitize(order_info);
@@ -148,4 +203,5 @@ function generateOrderId() {
 
 module.exports = {
     purchase,
+    getOrderById
 }
