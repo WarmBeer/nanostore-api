@@ -54,6 +54,7 @@ async function purchase(req, res) {
 
     let orders = req.body.orders;
 
+    let validateOrders_error = false;
     await validateOrders(orders)
         .then(
             success => {
@@ -62,9 +63,12 @@ async function purchase(req, res) {
             error => {
                 console.log(error);
                 res.status(400).json({ error })
+                validateOrders_error = error;
             }
         )
+    if (validateOrders_error) return;
 
+    let checkStockAndAddPriceOrders_error = false;
     await checkStockAndAddPriceOrders(orders)
         .then(
             success => {
@@ -73,10 +77,13 @@ async function purchase(req, res) {
             error => {
                 console.log(error);
                 res.status(400).json({ error })
+                checkStockAndAddPriceOrders_error = error;
             }
         )
+    if (checkStockAndAddPriceOrders_error) return;
 
     // Remove order quantity from stock
+    let updateStockOrders_error = false;
     await updateStockOrders(orders, -1)
         .then(
             success => {
@@ -85,8 +92,10 @@ async function purchase(req, res) {
             error => {
                 console.log(error);
                 res.status(400).json({ error })
+                updateStockOrders_error = true;
             }
         )
+    if (updateStockOrders_error) return;
 
     createOrder(req.user, orders)
         .then(
@@ -162,10 +171,6 @@ function updateStockOrders(orders, modifier = 1 || -1) {
 
             productsCollection.findOneAndUpdate(order_info, { $inc: { stock: modifier * order.quantity }})
                 .then((product) => {
-                    if (!product) reject('Product does not exist.');
-                    if (product.stock < order.quantity) {
-                        reject('Some items are out of stock.');
-                    }
                     --stockCheckQueue
                     if (stockCheckQueue < 1 && forEachEnded) resolve(true);
                 })
