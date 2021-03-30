@@ -1,11 +1,13 @@
 const db = require('../db/connection');
 const jwtHelper = require("../core/jwtHelper");
 const sanitize = require('mongo-sanitize');
+const bcrypt = require ('bcrypt');
 const users = db.get('users');
+
+const SALT_ROUNDS = 10;
 
 function loginUser(req, res) {
 
-    //TODO: Hash passwords
     const credentials = {
         email: req.body.email,
         _password: req.body.password
@@ -13,9 +15,10 @@ function loginUser(req, res) {
 
     sanitize(credentials);
 
-    getUser(credentials.email, credentials._password)
+    getUser(credentials.email)
         .then((user) => {
-            if (user) {
+            if (user && bcrypt.compareSync(credentials._password, user._password)) {
+                delete user._password;
                 let token = jwtHelper.generateToken(user);
                 res.json({
                     user,
@@ -48,6 +51,9 @@ function registerUser(req, res) {
 
     sanitize(user_info);
 
+    // Hash password
+    user_info._password = bcrypt.hashSync(user_info._password, SALT_ROUNDS);
+
     createUser(user_info.email, user_info._password, user_info.name, user_info.role)
         .then((user) => {
             if (user) {
@@ -77,8 +83,8 @@ function getUserFromJwt(req, res) {
     })
 }
 
-function getUser(email, _password) {
-    return users.findOne({ email, _password }, { projection: { _id: 0, _password: 0 } });
+function getUser(email) {
+    return users.findOne({ email }, { projection: { _id: 0 } });
 }
 
 function createUser(email, _password, name, role) {
