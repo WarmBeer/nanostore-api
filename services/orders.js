@@ -13,13 +13,20 @@ function getOrderById(req, res) {
     getOrder(req.params.orderId)
         .then(
             order => {
-                res.json({
-                    order
-                })
+                // Check ownership
+                if (req.user.email === order.email) {
+                    res.json({
+                        order
+                    });
+                } else {
+                    res.status(403).json({
+                        error: 'You can only see your own orders.'
+                    });
+                }
             },
             error => {
                 console.log(error);
-                res.status(400).json({ error })
+                res.status(400).json({ error });
             }
         )
 }
@@ -49,7 +56,8 @@ async function purchase(req, res) {
     console.log(req.body);
 
     if (!req.body.orders || req.body.orders.length < 1) {
-        res.status(400).json({error: 'Order a minimum of 1 product.'})
+        res.status(400).json({error: 'Order a minimum of 1 product.'});
+        return;
     }
 
     let orders = req.body.orders;
