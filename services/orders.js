@@ -48,8 +48,8 @@ function getOrder(orderId) {
 async function purchase(req, res) {
     console.log(req.body);
 
-    if (!req.body.orders) {
-        res.status(400).json({error: 'Missing arguments.'})
+    if (!req.body.orders || req.body.orders.length < 1) {
+        res.status(400).json({error: 'Order a minimum of 1 product.'})
     }
 
     let orders = req.body.orders;
